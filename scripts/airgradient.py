@@ -45,6 +45,7 @@ except ModuleNotFoundError:  # fallback for environments without requests
     requests = _RequestsShim()
 
 PENDING = object()
+COLOR_ENABLED = True
 
 
 class Style:
@@ -61,6 +62,8 @@ class Style:
 
 
 def color(text: str, code: str) -> str:
+    if not COLOR_ENABLED:
+        return text
     return f"{code}{text}{Style.RESET}"
 
 
@@ -88,6 +91,8 @@ def parse_value(raw: str) -> Any:
 
 
 def parse_yaml(text: str) -> Dict[str, Any]:
+    # Minimal YAML parser: supports nested mappings/lists with 2-space indents only.
+    # Limitations: no multiline strings, no anchors/aliases, no inline lists/maps.
     root: Dict[str, Any] = {}
     stack: List[Dict[str, Any]] = []
 
@@ -201,6 +206,12 @@ def load_config(path: str) -> Dict[str, Any]:
 
 def config_path_from_env() -> str:
     return os.environ.get("AIRGRADIENT_CONFIG", os.path.join("config", "config.yaml"))
+
+
+def resolve_device_config(config: Dict[str, Any], device_hint: Optional[str]) -> Dict[str, Any]:
+    if device_hint is not None and not device_hint.strip():
+        device_hint = None
+    return normalize_device(config, device_hint)
 
 
 def normalize_device(config: Dict[str, Any], device_hint: Optional[str]) -> Dict[str, Any]:
@@ -448,8 +459,10 @@ def fetch_and_maybe_store(config: Dict[str, Any], device: Dict[str, Any], store:
     if store:
         db_path = config.get("storage", {}).get("db_path", os.path.join("data", "airgradient.db"))
         conn = open_db(db_path)
-        store_reading(conn, device.get("name") or device.get("hostname"), data)
-        conn.close()
+        try:
+            store_reading(conn, device.get("name") or device.get("hostname"), data)
+        finally:
+            conn.close()
     return data
 
 
@@ -510,6 +523,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--config", help="Path to config YAML")
     parser.add_argument("--device", help="Device name or hostname")
+    parser.add_argument("--no-color", action="store_true", help="Disable ANSI colors (cron/non-TTY)")
 
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -545,7 +559,8 @@ def show_config(config: Dict[str, Any]) -> None:
 
 
 def set_config_value(config_path: str, key_path: str, value: str) -> None:
-    # Simple line-based update for key paths like thresholds.pm25.warn
+    # Simple line-based update for key paths like thresholds.pm25.warn.
+    # Limitations: only updates existing mappings, no list support, no auto-creation.
     with open(config_path, "r", encoding="utf-8") as handle:
         lines = handle.readlines()
 
@@ -572,7 +587,7 @@ def set_config_value(config_path: str, key_path: str, value: str) -> None:
         idx += 1
 
     if not found:
-        raise ValueError("Key path not found in config. Edit manually.")
+        raise ValueError("Key path not found or unsupported. Edit config manually.")
 
     with open(config_path, "w", encoding="utf-8") as handle:
         handle.writelines(lines)
@@ -585,17 +600,19 @@ def history_output(config: Dict[str, Any], device: Dict[str, Any], days: int, js
 
     cutoff = int(time.time() - days * 86400)
     conn = open_db(db_path)
-    cursor = conn.execute(
-        """
-        SELECT ts, pm02Compensated, pm02, rco2, atmpCompensated, atmp, rhumCompensated, rhum
-        FROM readings
-        WHERE device = ? AND ts >= ?
-        ORDER BY ts DESC
-        """,
-        (device.get("name") or device.get("hostname"), cutoff),
-    )
-    rows = cursor.fetchall()
-    conn.close()
+    try:
+        cursor = conn.execute(
+            """
+            SELECT ts, pm02Compensated, pm02, rco2, atmpCompensated, atmp, rhumCompensated, rhum
+            FROM readings
+            WHERE device = ? AND ts >= ?
+            ORDER BY ts DESC
+            """,
+            (device.get("name") or device.get("hostname"), cutoff),
+        )
+        rows = cursor.fetchall()
+    finally:
+        conn.close()
 
     if json_out:
         data = []
@@ -627,8 +644,11 @@ def history_output(config: Dict[str, Any], device: Dict[str, Any], days: int, js
 def main() -> None:
     args = parse_args()
     try:
+        global COLOR_ENABLED
+        if args.no_color or os.environ.get("NO_COLOR") is not None or not sys.stdout.isatty():
+            COLOR_ENABLED = False
         config = ensure_config(args)
-        device = normalize_device(config, args.device)
+        device = resolve_device_config(config, args.device)
 
         if args.command == "config":
             if args.action == "show":

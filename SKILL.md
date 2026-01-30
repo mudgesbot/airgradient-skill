@@ -3,7 +3,6 @@ name: airgradient
 title: AirGradient Monitor
 description: Monitor AirGradient air quality devices via the local API.
 version: 1.0.0
-entry: scripts/airgradient.py
 config: config/config.yaml
 supports:
   - cron
