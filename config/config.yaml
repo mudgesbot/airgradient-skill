@@ -1,0 +1,31 @@
+# AirGradient skill configuration
+
+# Optional: name of the default device from the devices list
+# default_device: living-room
+
+devices:
+  - name: living-room
+    hostname: 192.168.1.162
+    label: "Olaf's I-9PSL"
+
+thresholds:
+  pm25:
+    warn: 12
+    critical: 35
+  co2:
+    warn: 1000
+    critical: 2000
+  temp_c:
+    min: 18
+    max: 26
+  humidity:
+    min: 30
+    max: 70
+
+storage:
+  db_path: data/airgradient.db
+  store_on_read: false
+  echo_summary: true
+
+network:
+  timeout_sec: 5
