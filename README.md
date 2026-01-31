@@ -2,9 +2,9 @@
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Clawdbot Skill](https://img.shields.io/badge/clawdbot-skill-purple.svg)](https://github.com/clawdbot/clawdbot)
+[![OpenClaw Skill](https://img.shields.io/badge/openclaw-skill-purple.svg)](https://github.com/openclaw/openclaw)
 
-A [Clawdbot](https://github.com/clawdbot/clawdbot) skill for monitoring [AirGradient](https://www.airgradient.com/) air quality devices via their local API. Track PM2.5, CO2, temperature, humidity, and more — with alerts, history, and cron support.
+An [OpenClaw](https://github.com/openclaw/openclaw) (formerly Clawdbot, Moltbot) skill for monitoring [AirGradient](https://www.airgradient.com/) air quality devices via their local API. Track PM2.5, CO2, temperature, humidity, and more — with alerts, history, and cron support.
 
 <p align="center">
   <img src="https://www.airgradient.com/media/images/I-9PSL_DIY_PRO_45_PCB_front.original.png" width="200" alt="AirGradient I-9PSL">
@@ -127,7 +127,7 @@ Store readings every 15 minutes and alert on bad air quality:
 */15 * * * * cd /path/to/airgradient-skill && python scripts/airgradient.py store
 
 # Check alerts and notify (example with Clawdbot)
-*/15 * * * * cd /path/to/airgradient-skill && python scripts/airgradient.py alerts || clawdbot notify "Air quality alert!"
+*/15 * * * * cd /path/to/airgradient-skill && python scripts/airgradient.py alerts || openclaw notify "Air quality alert!"
 ```
 
 ## 🔧 Exit Codes
@@ -152,7 +152,7 @@ airgradient-skill/
 │   └── airgradient.db    # SQLite database (gitignored)
 ├── references/
 │   └── api.md            # AirGradient API documentation
-├── SKILL.md              # Clawdbot skill manifest
+├── SKILL.md              # OpenClaw skill manifest
 └── README.md
 ```
 
@@ -176,5 +176,5 @@ MIT License — see [LICENSE](LICENSE) for details.
 ## 🔗 Links
 
 - [AirGradient](https://www.airgradient.com/) — Air quality monitors
-- [Clawdbot](https://github.com/clawdbot/clawdbot) — AI assistant framework
+- [OpenClaw](https://github.com/openclaw/openclaw) — AI assistant framework (formerly Clawdbot, Moltbot)
 - [ClawdHub](https://clawdhub.com) — Skill marketplace
